@@ -56,6 +56,6 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "Dance Floor.sln",
+    "dotnet.defaultSolution": "NERDLab.sln",
     "git.ignoreLimitWarning": true
 }

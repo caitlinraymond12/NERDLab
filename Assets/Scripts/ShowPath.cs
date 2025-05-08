@@ -26,11 +26,11 @@ public class ShowPath : MonoBehaviour
     private int[] currentPath;
     private int currentStep = 0;
     private int successfulRounds = 0;
+    private int finalIndex;
     public List<GameObject> activatedSquares = new();
 
     private void Awake()
     {
-        Debug.Log("ShowPath: Awake - Building grid...");
         allSquares = new GameObject[gridRows * gridCols];
         Vector3 startPos = new Vector3(-(gridCols - 1) * spacing / 2f, (gridRows - 1) * spacing / 2f, 0f);
 
@@ -50,20 +50,22 @@ public class ShowPath : MonoBehaviour
                 index++;
             }
         }
+        finalIndex = index;
 
         move.InitializeGridSettings(gridRows, gridCols, spacing);
-        Debug.Log("ShowPath: Awake - Grid complete.");
+        
     }
 
-    public void StartNewRound()
+    public void StartNewRound(bool prevSuccess)
     {
-        Debug.Log("ShowPath: Starting new round...");
+        
         countdown.OnTimerFinished -= FailRound;
         countdown.OnTimerFinished += FailRound;
 
         currentStep = 0;
-        currentPath = pathGenerator.GetRandomPath();
-        Debug.Log("ShowPath: Generated path: " + string.Join(", ", currentPath));
+        if(prevSuccess)
+            currentPath = pathGenerator.GetRandomPath();
+       
 
         StartCoroutine(ActivateSquares(currentPath));
 
@@ -73,13 +75,17 @@ public class ShowPath : MonoBehaviour
 
     public void FailRound()
     {
-        Debug.Log("ShowPath: Timer expired - failing round.");
-        HandleRoundEnd(false);
+        StartCoroutine(HandleRoundEnd(false));
     }
     private IEnumerator ActivateSquares(int[] path)
     {
-        Debug.Log("ShowPath: Activating path...");
 
+        foreach (GameObject square in allSquares)
+        {
+            var click = square.GetComponent<ClickableSquare>();
+            click.gameStarted = false;
+        }
+        
         foreach (int index in path)
         {
             if (index < 0 || index >= allSquares.Length)
@@ -88,90 +94,97 @@ public class ShowPath : MonoBehaviour
                 continue;
             }
 
-            Debug.Log("ShowPath: Flashing square index: " + index);
-
             var click = allSquares[index].GetComponent<ClickableSquare>();
             if (click != null)
             {
                 click.Flash();
-                click.isOnPathThisRound = true; // ✅ Mark this square as part of the current path
+                click.isOnPathThisRound = true; 
             }
 
             yield return new WaitForSeconds(0.5f);
-
-            if (click != null)
-            {
-                click.ResetColor();
-            }
         }
 
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(2f);
+        foreach (int index in path)
+        {
+            var click = allSquares[index].GetComponent<ClickableSquare>();
+            click.ResetColor();
+        }
+
 
         foreach (GameObject square in allSquares)
         {
-            square.SetActive(true);
+            var click = square.GetComponent<ClickableSquare>();
+            click.gameStarted = true;
         }
 
         clickableGrid.SetActive(true);
-        Debug.Log("ShowPath: Player input enabled.");
+        
     }
 
     public void ProcessPlayerInput(int clickedIndex)
     {
-        Debug.Log("ShowPath: Player clicked index: " + clickedIndex);
+        
         var click = allSquares[clickedIndex].GetComponent<ClickableSquare>();
+        var nextSquare = allSquares[currentPath[currentStep]].GetComponent<ClickableSquare>();
 
-        if (click != null && click.isOnPathThisRound)
+        if (click != null && click.isOnPathThisRound && click.index == nextSquare.index)
         {
-            Debug.Log("ShowPath: Clicked a correct path square.");
-        }
-        else
-        {
-            Debug.Log("ShowPath: Clicked a non-path square.");
-        }
-
-        if (currentPath[currentStep] == clickedIndex)
-        {
-            click?.ConfirmClick(); // ✅ Visually mark the square clicked
-            activatedSquares.Add(allSquares[clickedIndex]);
+            click.ConfirmClick();
             currentStep++;
-
             if (currentStep == currentPath.Length)
             {
                 Debug.Log("ShowPath: Player completed path!");
-                HandleRoundEnd(true);
+                StartCoroutine(HandleRoundEnd(true));
             }
-        }    }
+        }
+        else
+        {
+            
+            click.Incorrect();
+            StartCoroutine(HandleRoundEnd(false));
 
-    private void HandleRoundEnd(bool success)
+        }
+
+   }
+
+    private IEnumerator HandleRoundEnd(bool success)
     {
         Debug.Log("ShowPath: Round ended. Success: " + success);
 
+           
         if (success)
         {
             successfulRounds++;
             progressText.text = $"Completed: {successfulRounds}";
+            for(int i = 0; i < finalIndex; i++)
+            {
+                var click = allSquares[i].GetComponent<ClickableSquare>();
+                click.ConfirmClick();
+            }
+        }
+        else
+        {
+            for(int i = 0; i < finalIndex; i++)
+            {
+                var click = allSquares[i].GetComponent<ClickableSquare>();
+                click.Incorrect();
+            }
         }
 
-        StartCoroutine(RestartAfterDelay());
+        yield return new WaitForSeconds(2f);
+
+        Restart(success);
     }
 
-    private IEnumerator RestartAfterDelay()
+    private void Restart(bool success)
     {
-        Debug.Log("ShowPath: Restarting round after delay...");
-
-        foreach (GameObject square in activatedSquares)
-        {
-            square.SetActive(false);
-        }
-        activatedSquares.Clear();
-
-        // 🔥 Reset ALL squares
+ 
         foreach (GameObject square in allSquares)
         {
             if (square != null)
             {
-                square.SetActive(true); // Squares visible again
+                square.SetActive(true); 
                 var click = square.GetComponent<ClickableSquare>();
                 if (click != null)
                 {
@@ -181,16 +194,8 @@ public class ShowPath : MonoBehaviour
             }
         }
 
-        // 🔥 IMPORTANT: Reactivate the clickable grid parent
         clickableGrid.SetActive(true);
-
-        // ✅ Hide background feedback (after the win/loss screen fades)
-        yield return new WaitForSeconds(3f);
-        background.SetActive(false);
-
-        yield return new WaitForSeconds(2f);
-
-        StartNewRound(); // Or not, depending on debug mode
+        StartNewRound(success);
     }
     
     public bool IsSquareOccupied(Vector3 position)
