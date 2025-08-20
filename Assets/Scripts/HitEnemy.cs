@@ -8,8 +8,16 @@ public class HitEnemy : MonoBehaviour
 {
     [SerializeField] private ShowPath showPath;
 
+    private void Awake()
+    {
+        showPath = FindObjectOfType<ShowPath>();
+    }
+
     private void OnMouseDown()
     {
-        showPath.FailRound();
+        if (showPath.gameStarted)
+        {
+            showPath.FailRound();
+        }
     }
 }

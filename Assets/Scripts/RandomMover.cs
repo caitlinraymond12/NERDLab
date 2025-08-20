@@ -25,6 +25,9 @@ public class RandomMover : MonoBehaviour
 
     private Coroutine movementCoroutine;
     private List<GameObject> objectsToMove = new List<GameObject>();
+
+    public List<Sprite> dancers;
+    
     private Dictionary<Vector2Int, List<GameObject>> gridOccupants = new Dictionary<Vector2Int, List<GameObject>>();
 
     private void Start()
@@ -53,6 +56,7 @@ public class RandomMover : MonoBehaviour
             Vector3 spawnPos = GetRandomSpawnPosition();
             GameObject enemy = Instantiate(enemyPrefab, spawnPos, Quaternion.identity, this.transform);
             objectsToMove.Add(enemy);
+            enemy.GetComponent<SpriteRenderer>().sprite = dancers[i];
         }
     }
 

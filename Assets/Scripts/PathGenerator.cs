@@ -2,11 +2,14 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [System.Serializable]
+
+
 public class IntPath
 {
     public List<int> values;
 }
 [CreateAssetMenu(fileName = "PathGenerator", menuName = "Game/PathGenerator")]
+
 
 public class PathGenerator : ScriptableObject
 {

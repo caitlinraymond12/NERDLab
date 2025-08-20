@@ -5,8 +5,8 @@ using System;
 public class CountdownTimer : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI timerText;
-    [SerializeField] private float maxTime = 10f;
-    private float remainingTime;
+    [SerializeField] private float maxTime = 90f;
+    public float remainingTime;
     private bool isRunning;
 
     public event Action OnTimerFinished;
@@ -29,6 +29,8 @@ public class CountdownTimer : MonoBehaviour
         if (remainingTime <= 0f)
         {
             isRunning = false;
+            StopTimer();
+            timerText.text = "00:00";
             OnTimerFinished?.Invoke();
         }
     }
